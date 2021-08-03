@@ -136,14 +136,18 @@ nanogui::Texture* Image::texture(const vector<string>& channelNames) {
             }
 
             const auto& channelData = chan->data();
-            gThreadPool->parallelForAsync<DenseIndex>(0, numPixels, [&channelData, &data, i](DenseIndex j) {
-                data[j * 4 + i] = channelData(j);
-            }, futures, std::numeric_limits<int>::max());
+            futures.emplace_back(
+                gThreadPool->parallelForAsync<DenseIndex>(0, numPixels, [&channelData, &data, i](DenseIndex j) {
+                    data[j * 4 + i] = channelData(j);
+                }, std::numeric_limits<int>::max())
+            );
         } else {
             float val = i == 3 ? 1 : 0;
-            gThreadPool->parallelForAsync<DenseIndex>(0, numPixels, [&data, val, i](DenseIndex j) {
-                data[j * 4 + i] = val;
-            }, futures, std::numeric_limits<int>::max());
+            futures.emplace_back(
+                gThreadPool->parallelForAsync<DenseIndex>(0, numPixels, [&data, val, i](DenseIndex j) {
+                    data[j * 4 + i] = val;
+                }, std::numeric_limits<int>::max())
+            );
         }
     }
     waitAll(futures);
@@ -390,7 +394,7 @@ void Image::alphaOperation(const function<void(Channel&, const Channel&)>& func)
 void Image::multiplyAlpha() {
     vector<future<void>> futures;
     alphaOperation([&] (Channel& target, const Channel& alpha) {
-        target.multiplyWithAsync(alpha, futures, -mId);
+        futures.emplace_back(target.multiplyWithAsync(alpha, -mId));
     });
     waitAll(futures);
 }
@@ -398,7 +402,7 @@ void Image::multiplyAlpha() {
 void Image::unmultiplyAlpha() {
     vector<future<void>> futures;
     alphaOperation([&] (Channel& target, const Channel& alpha) {
-        target.divideByAsync(alpha, futures, -mId);
+        futures.emplace_back(target.divideByAsync(alpha, -mId));
     });
     waitAll(futures);
 }
@@ -438,6 +442,8 @@ shared_ptr<Image> tryLoadImage(int imageId, path path, istream& iStream, string 
     } catch (const runtime_error& e) {
         handleException(e);
     } catch (const Iex::BaseExc& e) {
+        handleException(e);
+    } catch (const future_error& e) {
         handleException(e);
     }
 
