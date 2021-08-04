@@ -86,7 +86,7 @@ bool ExrImageLoader::canLoadFile(istream& iStream) const {
     return result;
 }
 
-std::tuple<ImageData, bool> ExrImageLoader::load(istream& iStream, const path& path, const string& channelSelector, int priority) const {
+Task<std::tuple<ImageData, bool>> ExrImageLoader::load(istream& iStream, const path& path, const string& channelSelector, int priority) const {
     ImageData result;
 
     StdIStream stdIStream{iStream, path.str().c_str()};
@@ -245,7 +245,7 @@ l_foundPart:
     }
     waitAll(futures);
 
-    return {result, true};
+    co_return {result, true};
 }
 
 TEV_NAMESPACE_END
