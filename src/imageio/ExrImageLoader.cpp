@@ -14,8 +14,8 @@
 
 #include <errno.h>
 
-using namespace Eigen;
 using namespace filesystem;
+using namespace nanogui;
 using namespace std;
 
 TEV_NAMESPACE_BEGIN
@@ -225,7 +225,7 @@ l_foundPart:
     }
 
     co_await gThreadPool->parallelForAsync(0, (int)rawChannels->size(), [c = rawChannels.get(), size](int i) {
-        c->at(i).resize((DenseIndex)size.x() * size.y());
+        c->at(i).resize((size_t)size.x() * size.y());
     }, priority);
 
     for (size_t i = 0; i < rawChannels->size(); ++i) {
