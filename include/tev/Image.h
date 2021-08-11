@@ -13,6 +13,7 @@
 #include <istream>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -189,7 +190,7 @@ struct ImageAddition {
 class BackgroundImagesLoader {
 public:
     void enqueue(const filesystem::path& path, const std::string& channelSelector, bool shallSelect);
-    ImageAddition tryPop() { return mLoadedImages.tryPop(); }
+    std::optional<ImageAddition> tryPop() { return mLoadedImages.tryPop(); }
 
     bool publishSortedLoads();
 
