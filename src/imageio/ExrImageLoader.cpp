@@ -153,8 +153,9 @@ private:
     vector<char> mData;
 };
 
-Task<ImageData> ExrImageLoader::load(istream& iStream, const path& path, const string& channelSelector, int priority) const {
-    ImageData result;
+Task<vector<ImageData>> ExrImageLoader::load(istream& iStream, const path& path, const string& channelSelector, int priority) const {
+    vector<ImageData> result(1);
+    ImageData& data = result.front();
 
     StdIStream stdIStream{iStream, path.str().c_str()};
     Imf::MultiPartInputFile multiPartFile{stdIStream};
@@ -191,20 +192,20 @@ l_foundPart:
 
     // EXR's display- and data windows have inclusive upper ends while tev's upper ends are exclusive.
     // This allows easy conversion from window to size. Hence the +1.
-    result.dataWindow =    {{dataWindow.min.x,    dataWindow.min.y   }, {dataWindow.max.x+1,    dataWindow.max.y+1   }};
-    result.displayWindow = {{displayWindow.min.x, displayWindow.min.y}, {displayWindow.max.x+1, displayWindow.max.y+1}};
+    data.dataWindow =    {{dataWindow.min.x,    dataWindow.min.y   }, {dataWindow.max.x+1,    dataWindow.max.y+1   }};
+    data.displayWindow = {{displayWindow.min.x, displayWindow.min.y}, {displayWindow.max.x+1, displayWindow.max.y+1}};
 
-    if (!result.dataWindow.isValid()) {
+    if (!data.dataWindow.isValid()) {
         throw invalid_argument{tfm::format(
             "EXR image has invalid data window: [%d,%d] - [%d,%d]",
-            result.dataWindow.min.x(), result.dataWindow.min.y(), result.dataWindow.max.x(), result.dataWindow.max.y()
+            data.dataWindow.min.x(), data.dataWindow.min.y(), data.dataWindow.max.x(), data.dataWindow.max.y()
         )};
     }
 
-    if (!result.displayWindow.isValid()) {
+    if (!data.displayWindow.isValid()) {
         throw invalid_argument{tfm::format(
             "EXR image has invalid display window: [%d,%d] - [%d,%d]",
-            result.displayWindow.min.x(), result.displayWindow.min.y(), result.displayWindow.max.x(), result.displayWindow.max.y()
+            data.displayWindow.min.x(), data.displayWindow.min.y(), data.displayWindow.max.x(), data.displayWindow.max.y()
         )};
     }
 
@@ -250,19 +251,19 @@ l_foundPart:
     file.readPixels(dataWindow.min.y, dataWindow.max.y);
 
     for (const auto& rawChannel : *rawChannels) {
-        result.channels.emplace_back(Channel{rawChannel.name(), size});
+        data.channels.emplace_back(Channel{rawChannel.name(), size});
     }
 
     vector<Task<void>> tasks;
     for (size_t i = 0; i < rawChannels->size(); ++i) {
-        tasks.emplace_back(rawChannels->at(i).copyTo(result.channels[i], priority));
+        tasks.emplace_back(rawChannels->at(i).copyTo(data.channels[i], priority));
     }
 
     for (auto& task : tasks) {
         co_await task;
     }
 
-    result.hasPremultipliedAlpha = true;
+    data.hasPremultipliedAlpha = true;
 
     co_return result;
 }

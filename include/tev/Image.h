@@ -23,6 +23,10 @@ TEV_NAMESPACE_BEGIN
 class ImageLoader;
 
 struct ImageData {
+    ImageData() = default;
+    ImageData(const ImageData&) = delete;
+    ImageData(ImageData&&) = default;
+
     std::vector<Channel> channels;
     std::vector<std::string> layers;
     bool hasPremultipliedAlpha;
@@ -97,7 +101,7 @@ struct ImageTexture {
 
 class Image {
 public:
-    Image(int id, const filesystem::path& path, ImageData&& data, const std::string& channelSelector);
+    Image(const filesystem::path& path, ImageData&& data, const std::string& channelSelector);
     virtual ~Image();
 
     const filesystem::path& path() const {
@@ -191,15 +195,15 @@ private:
     int mId;
 };
 
-Task<std::shared_ptr<Image>> tryLoadImage(int imageId, filesystem::path path, std::istream& iStream, std::string channelSelector);
-Task<std::shared_ptr<Image>> tryLoadImage(filesystem::path path, std::istream& iStream, std::string channelSelector);
-Task<std::shared_ptr<Image>> tryLoadImage(int imageId, filesystem::path path, std::string channelSelector);
-Task<std::shared_ptr<Image>> tryLoadImage(filesystem::path path, std::string channelSelector);
+Task<std::vector<std::shared_ptr<Image>>> tryLoadImage(int imageId, filesystem::path path, std::istream& iStream, std::string channelSelector);
+Task<std::vector<std::shared_ptr<Image>>> tryLoadImage(filesystem::path path, std::istream& iStream, std::string channelSelector);
+Task<std::vector<std::shared_ptr<Image>>> tryLoadImage(int imageId, filesystem::path path, std::string channelSelector);
+Task<std::vector<std::shared_ptr<Image>>> tryLoadImage(filesystem::path path, std::string channelSelector);
 
 struct ImageAddition {
     int loadId;
     bool shallSelect;
-    std::shared_ptr<Image> image;
+    std::vector<std::shared_ptr<Image>> images;
 
     struct Comparator {
         bool operator()(const ImageAddition& a, const ImageAddition& b) {
