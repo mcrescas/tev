@@ -25,6 +25,7 @@ class ImageLoader;
 struct ImageData {
     std::vector<Channel> channels;
     std::vector<std::string> layers;
+    bool hasPremultipliedAlpha;
 
     Box2i dataWindow;
     Box2i displayWindow;
@@ -48,7 +49,7 @@ struct ImageData {
     Task<void> multiplyAlpha(int priority);
     Task<void> unmultiplyAlpha(int priority);
 
-    void ensureValid();
+    Task<void> ensureValid(const std::string& channelSelector, int taskPriority);
 
     bool hasChannel(const std::string& channelName) const {
         return channel(channelName) != nullptr;
