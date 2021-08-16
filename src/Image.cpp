@@ -490,7 +490,20 @@ Task<vector<shared_ptr<Image>>> tryLoadImage(int taskPriority, path path, istrea
                 vector<shared_ptr<Image>> images;
                 for (auto& i : imageData) {
                     co_await i.ensureValid(channelSelector, taskPriority);
-                    images.emplace_back(make_shared<Image>(path, std::move(i), channelSelector));
+
+                    // If multiple image "parts" were loaded and they have names,
+                    // ensure that these names are present in the channel selector.
+                    string localChannelSelector = channelSelector;
+                    if (!i.partName.empty()) {
+                        auto selectorParts = split(channelSelector, ",");
+                        if (channelSelector.empty()) {
+                            localChannelSelector = i.partName;
+                        } else if (find(begin(selectorParts), end(selectorParts), i.partName) == end(selectorParts)) {
+                            localChannelSelector = join(vector<string>{i.partName, channelSelector}, ",");
+                        }
+                    }
+
+                    images.emplace_back(make_shared<Image>(path, std::move(i), localChannelSelector));
                 }
 
                 auto end = chrono::system_clock::now();

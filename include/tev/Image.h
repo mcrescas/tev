@@ -34,6 +34,8 @@ struct ImageData {
     Box2i dataWindow;
     Box2i displayWindow;
 
+    std::string partName;
+
     nanogui::Vector2i size() const {
         return dataWindow.size();
     }
