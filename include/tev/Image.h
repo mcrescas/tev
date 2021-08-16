@@ -62,12 +62,7 @@ struct ImageData {
     }
 
     const Channel* channel(const std::string& channelName) const {
-        auto it = std::find_if(
-            std::begin(channels),
-            std::end(channels),
-            [&channelName](const Channel& c) { return c.name() == channelName; }
-        );
-
+        auto it = std::ranges::find_if(channels, [&channelName](const Channel& c) { return c.name() == channelName; });
         if (it != std::end(channels)) {
             return &(*it);
         } else {
@@ -76,12 +71,7 @@ struct ImageData {
     }
 
     Channel* mutableChannel(const std::string& channelName) {
-        auto it = std::find_if(
-            std::begin(channels),
-            std::end(channels),
-            [&channelName](const Channel& c) { return c.name() == channelName; }
-        );
-
+        auto it = std::ranges::find_if(channels, [&channelName](const Channel& c) { return c.name() == channelName; });
         if (it != std::end(channels)) {
             return &(*it);
         } else {
