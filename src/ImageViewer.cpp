@@ -29,8 +29,8 @@ using namespace std;
 
 TEV_NAMESPACE_BEGIN
 
-ImageViewer::ImageViewer(const shared_ptr<BackgroundImagesLoader>& imagesLoader, bool fullscreen, bool floatBuffer, bool /*supportsHdr*/)
-: nanogui::Screen{nanogui::Vector2i{1024, 799}, "tev", true, false, true, true, floatBuffer}, mImagesLoader{imagesLoader} {
+ImageViewer::ImageViewer(const shared_ptr<BackgroundImagesLoader>& imagesLoader, bool maximize, bool floatBuffer, bool /*supportsHdr*/)
+: nanogui::Screen{nanogui::Vector2i{1024, 799}, "tev", true, maximize, false, true, true, floatBuffer}, mImagesLoader{imagesLoader} {
     if (floatBuffer && !m_float_buffer) {
         tlog::warning() << "Failed to create floating point frame buffer.";
     }
@@ -451,10 +451,9 @@ ImageViewer::ImageViewer(const shared_ptr<BackgroundImagesLoader>& imagesLoader,
     selectImage(nullptr);
     selectReference(nullptr);
 
-    if (!fullscreen) {
+    if (!maximize) {
         this->set_size(nanogui::Vector2i(1024, 800));
-    } else {
-        this->maximize();
+        mDidFitToImage = 3;
     }
 }
 
@@ -872,6 +871,14 @@ void ImageViewer::focusWindow() {
 }
 
 void ImageViewer::draw_contents() {
+    // HACK HACK HACK: on Windows, when restoring a window from maximization,
+    //                 the old window size is restored _several times_, necessitating
+    //                 a repeated resize to the actually desired window size.
+    if (mDidFitToImage < 3 && !isMaximized()) {
+        set_size(sizeToFitAllImages());
+        ++mDidFitToImage;
+    }
+
     clear();
 
     // In case any images got loaded in the background, they sit around in mImagesLoader. Here is the
@@ -1013,7 +1020,9 @@ void ImageViewer::insertImage(shared_ptr<Image> image, size_t index, bool shallS
     // First image got added, let's select it.
     if ((index == 0 && mImages.size() == 1) || shallSelect) {
         selectImage(image);
-        resizeToFitImage(image);
+        if (!isMaximized()) {
+            set_size(sizeToFitImage(image));
+        }
     }
 }
 
@@ -1435,9 +1444,9 @@ void ImageViewer::setMetric(EMetric metric) {
     }
 }
 
-void ImageViewer::resizeToFitImage(const shared_ptr<Image>& image) {
-    if (!image || isMaximized()) {
-        return;
+Vector2i ImageViewer::sizeToFitImage(const shared_ptr<Image>& image) {
+    if (!image) {
+        return m_size;
     }
 
     nanogui::Vector2i requiredSize{image->size().x(), image->size().y()};
@@ -1455,13 +1464,15 @@ void ImageViewer::resizeToFitImage(const shared_ptr<Image>& image) {
     }
 
     // Only increase our current size if we are larger than the current size of the window.
-    set_size(max(m_size, requiredSize));
+    return max(m_size, requiredSize);
 }
 
-void ImageViewer::resizeToFitAllImages() {
+Vector2i ImageViewer::sizeToFitAllImages() {
+    Vector2i result = m_size;
     for (const auto& image : mImages) {
-        resizeToFitImage(image);
+        result = max(result, sizeToFitImage(image));
     }
+    return result;
 }
 
 bool ImageViewer::setFilter(const string& filter) {
