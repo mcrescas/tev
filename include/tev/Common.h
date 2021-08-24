@@ -266,6 +266,7 @@ void toggleConsole();
 
 // Implemented in main.cpp
 void scheduleToMainThread(const std::function<void()>& fun);
+void redrawWindow();
 
 enum ETonemap : int {
     SRGB = 0,
